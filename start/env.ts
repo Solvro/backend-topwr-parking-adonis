@@ -34,6 +34,11 @@ export default await Env.create(new URL("../", import.meta.url), {
   DB_USER: Env.schema.string(),
   DB_PASSWORD: Env.schema.string.optional(),
   DB_DATABASE: Env.schema.string(),
+  PARKING_INTERVAL: Env.schema.enum([
+    "EVERY_MINUTE",
+    "EVERY_5",
+    "EVERY_15",
+  ] as const),
 
   PROXY_LOGIN: Env.schema.string(),
   PROXY_PASSWORD: Env.schema.string(),
