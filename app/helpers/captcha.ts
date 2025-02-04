@@ -5,29 +5,37 @@ import logger from "@adonisjs/core/services/logger";
 import { getProxyConfig } from "../helpers/proxy.js";
 
 type PageWithCursor = Awaited<ReturnType<typeof connect>>["page"];
+type ElementHandleOrNull = Awaited<ReturnType<PageWithCursor["$"]>>;
 
 async function unlockCaptcha(page: PageWithCursor, url: string) {
-  await page.goto(url, {
-    waitUntil: "networkidle0",
-  });
-  const captcha = await page.$("#captcha");
-  if (captcha !== null) {
-    logger.info("Captcha required");
-    await new Promise((resolve) => setTimeout(resolve, 5000));
-    logger.info("Clicking captcha");
-    await page.click("#captcha");
+  let captcha: ElementHandleOrNull = null;
+  let captchaSecondCheck: ElementHandleOrNull = null;
+  try {
+    await page.goto(url, {
+      waitUntil: "networkidle0",
+    });
+    captcha = await page.$("#captcha");
+    if (captcha !== null) {
+      logger.info("Captcha required");
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+      logger.info("Clicking captcha");
+      await page.click("#captcha");
 
-    await new Promise((resolve) => setTimeout(resolve, 5000));
+      await new Promise((resolve) => setTimeout(resolve, 5000));
 
-    const captchaSecondCheck = await page.$("#captcha");
-    if (captchaSecondCheck !== null) {
-      logger.info("Captcha still found");
-      await page.screenshot({ path: "debug.png" });
+      captchaSecondCheck = await page.$("#captcha");
+      if (captchaSecondCheck !== null) {
+        logger.info("Captcha still found");
+        await page.screenshot({ path: "debug.png" });
+      } else {
+        logger.info("Captcha solved");
+      }
     } else {
-      logger.info("Captcha solved");
+      logger.info("No captcha required");
     }
-  } else {
-    logger.info("No captcha required");
+  } finally {
+    await captchaSecondCheck?.dispose();
+    await captcha?.dispose();
   }
 }
 
@@ -42,38 +50,40 @@ export const getParkingAPI = async (
     args: ["--disable-blink-features=AutomationControlled"],
   });
 
-  await unlockCaptcha(page, url);
+  try {
+    await unlockCaptcha(page, url);
 
-  const generatedHeaders = {
-    Referer: "https://iparking.pwr.edu.pl/",
-    "X-Requested-With": "XMLHttpRequest",
-    "User-Agent": getRandomUserAgent(),
-    "Cache-Control": "no-cache",
-    "Content-Type": "application/json",
-  };
+    const generatedHeaders = {
+      Referer: "https://iparking.pwr.edu.pl/",
+      "X-Requested-With": "XMLHttpRequest",
+      "User-Agent": getRandomUserAgent(),
+      "Cache-Control": "no-cache",
+      "Content-Type": "application/json",
+    };
 
-  const returnValue = await page.evaluate(
-    async (data, headers: Record<string, string>) => {
-      const body = JSON.stringify(data);
-      const response = await fetch(
-        "https://iparking.pwr.edu.pl/modules/iparking/scripts/ipk_operations.php",
-        {
-          method: "POST",
-          headers,
-          body,
-        },
-      );
+    const returnValue = await page.evaluate(
+      async (data, headers: Record<string, string>) => {
+        const body = JSON.stringify(data);
+        const response = await fetch(
+          "https://iparking.pwr.edu.pl/modules/iparking/scripts/ipk_operations.php",
+          {
+            method: "POST",
+            headers,
+            body,
+          },
+        );
 
-      return await response.json();
-    },
-    requestContent,
-    generatedHeaders,
-  );
+        return await response.json();
+      },
+      requestContent,
+      generatedHeaders,
+    );
 
-  await page.close();
-  await browser.close();
-
-  return returnValue;
+    return returnValue;
+  } finally {
+    await page.close();
+    await browser.close();
+  }
 };
 
 const userAgents = [
