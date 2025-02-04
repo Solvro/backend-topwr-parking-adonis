@@ -70,6 +70,7 @@ export const getParkingAPI = async (
     generatedHeaders,
   );
 
+  await page.close();
   await browser.close();
 
   return returnValue;
