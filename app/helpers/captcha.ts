@@ -2,7 +2,7 @@ import { connect } from "puppeteer-real-browser";
 
 import logger from "@adonisjs/core/services/logger";
 
-import { getProxyConfig } from "../helpers/proxy.js";
+import { getProxyConfig, usesProxy } from "../helpers/proxy.js";
 
 type PageWithCursor = Awaited<ReturnType<typeof connect>>["page"];
 type ElementHandleOrNull = Awaited<ReturnType<PageWithCursor["$"]>>;
@@ -42,7 +42,7 @@ async function unlockCaptcha(page: PageWithCursor, url: string) {
 export const getParkingAPI = async (
   requestContent: Record<string, string | number>,
 ) => {
-  const proxy = getProxyConfig();
+  const proxy = usesProxy ? getProxyConfig() : undefined;
 
   const url = "https://iparking.pwr.edu.pl";
   const { page, browser } = await connect({

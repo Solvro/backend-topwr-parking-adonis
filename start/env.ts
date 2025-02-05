@@ -43,6 +43,7 @@ export default await Env.create(new URL("../", import.meta.url), {
   PROXY_LOGIN: Env.schema.string(),
   PROXY_PASSWORD: Env.schema.string(),
   PROXY_URL: Env.schema.string(),
+  USES_PROXY: Env.schema.boolean(),
   PROXY_PORT: Env.schema.number(),
   APP_URL: Env.schema.string(),
 });
