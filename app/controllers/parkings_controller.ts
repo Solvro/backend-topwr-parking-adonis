@@ -63,7 +63,7 @@ export default class ParkingsController {
     const plNow = DateTime.now().setZone("Europe/Warsaw");
     const startOfDay = plNow
       .set({
-        hour: 0,
+        hour: 6,
         minute: 0,
         second: 0,
         millisecond: 0,
