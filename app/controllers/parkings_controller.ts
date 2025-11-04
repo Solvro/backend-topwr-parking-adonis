@@ -7,6 +7,8 @@ import Parking from "#models/parking";
 import ParkingAvailability from "#models/parking_availability";
 import env from "#start/env";
 
+const APP_URL = env.get("APP_URL");
+
 export default class ParkingsController {
   /**
    * Display a list of resource
@@ -35,7 +37,8 @@ export default class ParkingsController {
           places: lot.places.toString(),
           geo_lan: lot.geoLan.toString(),
           geo_lat: lot.geoLat.toString(),
-          photo: `${env.get("APP_URL")}/images/parkings/${lot.id}.jpg`,
+          photo: `${APP_URL}/images/parkings/original/${lot.id}.jpg`,
+          miniature: `${APP_URL}/images/parkings/miniatures/${lot.id}.jpg`,
           aktywny: lot.isActive ? "1" : "0",
           show_park: lot.isVisible ? "1" : "0",
           lp: "",
