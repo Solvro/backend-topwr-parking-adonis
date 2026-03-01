@@ -15,6 +15,7 @@ export default class ParkingsController {
    */
   async index() {
     const parkingLots = await Parking.query()
+      .where("is_visible", true)
       .preload("availabilities", (query) =>
         query.orderBy("measured_at", "desc").groupLimit(1),
       )
