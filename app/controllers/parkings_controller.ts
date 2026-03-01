@@ -31,6 +31,7 @@ export default class ParkingsController {
               : "0",
           symbol: lot.symbol,
           type: lot.type,
+          access: lot.access,
           nazwa: lot.name,
           open_hour: lot.openHour,
           close_hour: lot.closeHour,

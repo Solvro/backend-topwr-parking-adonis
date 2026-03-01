@@ -4,37 +4,21 @@ import { BaseCommand } from "@adonisjs/core/ace";
 import type { CommandOptions } from "@adonisjs/core/types/ace";
 
 import Parking from "#models/parking";
+import ParkingAvailability from "#models/parking_availability";
 
-import { getParkingAPI } from "../app/helpers/captcha.js";
+import {
+  getCarParks,
+  getCarParksFreeSlots,
+} from "../app/helpers/iparking_api.js";
 
-interface UpstreamParking {
-  id: string;
-  parking_id: string;
-  czas_pomiaru: string;
-  liczba_miejsc: string;
-  symbol: string;
-  type: string | null | undefined;
-  nazwa: string;
-  open_hour: string | null | undefined;
-  close_hour: string | null | undefined;
-  places: string;
-  geo_lan: string;
-  geo_lat: string;
-  photo: string;
-  aktywny: string;
-  show_park: string;
-  lp: string;
-  address: string;
-  trend: string;
-}
+const trendMap: Record<string, number> = {
+  constant: 0,
+  up: 1,
+  down: -1,
+};
 
-interface UpstreamParkingResponse {
-  success: number;
-  places: UpstreamParking[];
-}
-
-function isUpstreamParking(input: object): input is UpstreamParkingResponse {
-  return "places" in input && typeof input.places === "object";
+function parseTrend(trend: string): number {
+  return trendMap[trend] ?? 0;
 }
 
 export default class SynchronizeParkings extends BaseCommand {
@@ -46,39 +30,31 @@ export default class SynchronizeParkings extends BaseCommand {
   };
 
   async run() {
-    const parkings = (await getParkingAPI({ o: "get_parks" })) as Record<
-      string,
-      string
-    >;
+    const [carParks, freeSlots] = await Promise.all([
+      getCarParks(),
+      getCarParksFreeSlots(),
+    ]);
 
-    if (!isUpstreamParking(parkings)) {
-      console.error("Wrong Parking API response");
-      this.logger.error("Wrong Parking API response");
-      return false;
-    }
+    const freeSlotsMap = new Map(freeSlots.map((slot) => [slot.id, slot]));
 
-    this.logger.debug(JSON.stringify(parkings, null, 2));
-    for (const place of parkings.places) {
-      this.logger.debug(JSON.stringify(place, null, 2));
+    for (const carPark of carParks) {
+      this.logger.debug(JSON.stringify(carPark, null, 2));
 
-      let parking;
+      const freeSlot = freeSlotsMap.get(carPark.id);
+
       try {
-        parking = await Parking.updateOrCreate(
+        await Parking.updateOrCreate(
+          { id: carPark.id },
           {
-            id: Number(place.id),
-          },
-          {
-            symbol: place.symbol,
-            name: place.nazwa,
-            closeHour: place.close_hour,
-            openHour: place.open_hour,
-            type: place.type,
-            places: Number(place.places),
-            geoLan: Number(place.geo_lan),
-            geoLat: Number(place.geo_lat),
-            isVisible: Boolean(place.show_park),
-            isActive: Boolean(place.aktywny),
-            address: place.address,
+            symbol: carPark.symbol,
+            name: carPark.name,
+            access: carPark.access,
+            closeHour: carPark.closeHour,
+            openHour: carPark.openHour,
+            places: carPark.totalSlots,
+            geoLan: Number(carPark.geoLan),
+            geoLat: Number(carPark.geoLat),
+            address: carPark.address,
           },
         );
       } catch (error) {
@@ -86,19 +62,13 @@ export default class SynchronizeParkings extends BaseCommand {
         throw error;
       }
 
-      await parking.related("availabilities").updateOrCreate(
-        {
-          measuredAt: DateTime.fromFormat(
-            place.czas_pomiaru,
-            "yyyy-MM-dd HH:mm:ss",
-            { zone: "Europe/Warsaw", setZone: true },
-          ),
-        },
-        {
-          spacesLeft: Number(place.liczba_miejsc),
-          trend: Number(place.trend),
-        },
-      );
+      const rawTrend = freeSlot?.trend ?? carPark.trend;
+      await ParkingAvailability.create({
+        parkingId: carPark.id,
+        spacesLeft: freeSlot?.freeSlots ?? carPark.freeSlots,
+        trend: parseTrend(rawTrend),
+        measuredAt: DateTime.now(),
+      });
     }
 
     this.logger.info('"SynchronizeParkings" finished');

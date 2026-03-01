@@ -21,6 +21,9 @@ export default class Parking extends BaseModel {
   declare name: string;
 
   @column()
+  declare access: string | null;
+
+  @column()
   declare openHour: string | null;
 
   @column()
