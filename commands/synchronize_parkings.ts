@@ -38,7 +38,9 @@ export default class SynchronizeParkings extends BaseCommand {
     const freeSlotsMap = new Map(freeSlots.map((slot) => [slot.id, slot]));
 
     for (const carPark of carParks) {
-      this.logger.debug(JSON.stringify(carPark, null, 2));
+      if (process.env.DEBUG) {
+        this.logger.debug(JSON.stringify(carPark, null, 2));
+      }
 
       const freeSlot = freeSlotsMap.get(carPark.id);
 

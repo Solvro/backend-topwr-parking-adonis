@@ -6,8 +6,8 @@ export default class extends BaseSchema {
   async up() {
     this.schema.alterTable(this.tableName, (table) => {
       table.text("access").nullable();
-      table.boolean("is_active").defaultTo(true).alter();
-      table.boolean("is_visible").defaultTo(true).alter();
+      table.boolean("is_active").defaultTo(true).notNullable().alter();
+      table.boolean("is_visible").defaultTo(true).notNullable().alter();
     });
   }
 

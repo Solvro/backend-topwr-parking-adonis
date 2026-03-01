@@ -12,7 +12,8 @@ async function fetchWithToken<T>(endpoint: string): Promise<T> {
   }, REQUEST_TIMEOUT_MS);
 
   try {
-    const response = await fetch(`${BASE_URL}/${endpoint}`, {
+    const url = new URL(endpoint, `${BASE_URL}/`);
+    const response = await fetch(url, {
       headers: {
         Authorization: `Bearer ${token}`,
         Accept: "application/json",
