@@ -20,7 +20,8 @@
     "#database/*": "./database/*.js",
     "#start/*": "./start/*.js",
     "#tests/*": "./tests/*.js",
-    "#config/*": "./config/*.js"
+    "#config/*": "./config/*.js",
+    "#helpers/*": "./app/helpers/*.js"
   },
   "scripts": {
     "build": "node ace build",

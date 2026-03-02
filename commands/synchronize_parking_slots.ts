@@ -6,21 +6,15 @@ import type { CommandOptions } from "@adonisjs/core/types/ace";
 import Parking from "#models/parking";
 import ParkingAvailability from "#models/parking_availability";
 
-import type { CarPark } from "../app/helpers/iparking_api.js";
 import {
   getCarParks,
   getCarParksFreeSlots,
 } from "../app/helpers/iparking_api.js";
-
-const trendMap: Record<string, number> = {
-  constant: 0,
-  up: 1,
-  down: -1,
-};
-
-function parseTrend(trend: string): number {
-  return trendMap[trend] ?? 0;
-}
+import {
+  getNextLocalId,
+  parseTrend,
+  upsertMetadataParking,
+} from "../app/helpers/parking_sync.js";
 
 export default class SynchronizeParkingSlots extends BaseCommand {
   static commandName = "synchronize:parking-slots";
@@ -102,58 +96,11 @@ export default class SynchronizeParkingSlots extends BaseCommand {
       return;
     }
 
-    let nextLocalId = await this.getNextLocalId();
+    let nextLocalId = await getNextLocalId();
 
     for (const carPark of unknownCarParks) {
-      await this.upsertMetadataParking(carPark, nextLocalId);
+      await upsertMetadataParking(carPark, nextLocalId);
       nextLocalId += 1;
     }
-  }
-
-  private async upsertMetadataParking(carPark: CarPark, nextLocalId: number) {
-    let parking = await Parking.findBy("symbol", carPark.symbol);
-
-    parking ??= await Parking.findBy("external_id", carPark.id);
-
-    if (parking !== null) {
-      await parking
-        .merge({
-          symbol: carPark.symbol,
-          externalId: carPark.id,
-          name: carPark.name,
-          access: carPark.access,
-          closeHour: carPark.closeHour,
-          openHour: carPark.openHour,
-          places: carPark.totalSlots,
-          geoLan: Number(carPark.geoLan),
-          geoLat: Number(carPark.geoLat),
-          address: carPark.address,
-          isActive: true,
-          isVisible: true,
-        })
-        .save();
-      return;
-    }
-
-    await Parking.create({
-      id: nextLocalId,
-      symbol: carPark.symbol,
-      externalId: carPark.id,
-      name: carPark.name,
-      access: carPark.access,
-      closeHour: carPark.closeHour,
-      openHour: carPark.openHour,
-      places: carPark.totalSlots,
-      geoLan: Number(carPark.geoLan),
-      geoLat: Number(carPark.geoLat),
-      address: carPark.address,
-      isActive: true,
-      isVisible: true,
-    });
-  }
-
-  private async getNextLocalId(): Promise<number> {
-    const lastParking = await Parking.query().orderBy("id", "desc").first();
-    return (lastParking?.id ?? 0) + 1;
   }
 }
