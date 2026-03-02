@@ -18,7 +18,7 @@ function isoTsToTime(iso: string): string {
   return DateTime.fromISO(iso)
     .setZone("Europe/Warsaw")
     .setLocale("pl-PL")
-    .toLocaleString(DateTime.TIME_24_SIMPLE);
+    .toLocaleString(DateTime.TIME_24_WITH_SECONDS);
 }
 
 export async function upsertMetadataParking(
