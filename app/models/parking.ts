@@ -6,8 +6,6 @@ import type { HasMany } from "@adonisjs/lucid/types/relations";
 import ParkingAvailability from "./parking_availability.js";
 
 export default class Parking extends BaseModel {
-  static selfAssignPrimaryKey = true;
-
   @column({ isPrimary: true })
   declare id: number;
 
@@ -15,10 +13,16 @@ export default class Parking extends BaseModel {
   declare symbol: string;
 
   @column()
+  declare externalId: number | null;
+
+  @column()
   declare type: string | null;
 
   @column()
   declare name: string;
+
+  @column()
+  declare access: string | null;
 
   @column()
   declare openHour: string | null;

@@ -20,7 +20,8 @@
     "#database/*": "./database/*.js",
     "#start/*": "./start/*.js",
     "#tests/*": "./tests/*.js",
-    "#config/*": "./config/*.js"
+    "#config/*": "./config/*.js",
+    "#helpers/*": "./app/helpers/*.js"
   },
   "scripts": {
     "build": "node ace build",
@@ -38,6 +39,9 @@
   },
   "prettier": "@solvro/config/prettier",
   "resolutions": {
+    "strtok3": "8.0.1"
+  },
+  "overrides": {
     "strtok3": "8.0.1"
   },
   "dependencies": {
@@ -65,7 +69,7 @@
     "@japa/assert": "^3.0.0",
     "@japa/plugin-adonisjs": "^3.0.1",
     "@japa/runner": "^3.1.4",
-    "@solvro/config": "^1.13.3",
+    "@solvro/config": "^2.0.7",
     "@swc/core": "1.10.1",
     "@types/luxon": "^3.4.2",
     "@types/node": "^22.10.2",
@@ -88,8 +92,5 @@
       "./app/controllers/**/*.ts",
       "./app/middleware/*.ts"
     ]
-  },
-  "overrides": {
-    "strtok3": "8.0.1"
   }
 }

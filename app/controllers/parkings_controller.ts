@@ -15,6 +15,7 @@ export default class ParkingsController {
    */
   async index() {
     const parkingLots = await Parking.query()
+      .where("is_visible", true)
       .preload("availabilities", (query) =>
         query.orderBy("measured_at", "desc").groupLimit(1),
       )
@@ -31,6 +32,7 @@ export default class ParkingsController {
               : "0",
           symbol: lot.symbol,
           type: lot.type,
+          access: lot.access,
           nazwa: lot.name,
           open_hour: lot.openHour,
           close_hour: lot.closeHour,
