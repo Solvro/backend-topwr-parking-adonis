@@ -40,11 +40,6 @@ export default await Env.create(new URL("../", import.meta.url), {
     "EVERY_15",
   ] as const),
 
-  PROXY_LOGIN: Env.schema.string(),
-  PROXY_PASSWORD: Env.schema.string(),
-  PROXY_URL: Env.schema.string(),
-  USES_PROXY: Env.schema.boolean(),
-  PROXY_PORT: Env.schema.number(),
   APP_URL: Env.schema.string(),
   API_ACCESS_TOKEN: Env.schema.string.optional(),
 });
