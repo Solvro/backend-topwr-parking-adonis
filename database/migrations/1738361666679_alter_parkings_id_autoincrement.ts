@@ -13,15 +13,15 @@ export default class extends BaseSchema {
       table.unique(["symbol"]);
     });
 
-    await this.db.rawQuery(`CREATE SEQUENCE IF NOT EXISTS parkings_id_seq`);
+    await this.db.rawQuery(`
+      CREATE SEQUENCE parkings_id_seq
+      OWNED BY ${this.tableName}.id
+    `);
     await this.db.rawQuery(
-      `SELECT setval('parkings_id_seq', COALESCE((SELECT MAX(id) FROM ${this.tableName}), 1))`,
+      `SELECT setval('parkings_id_seq', (SELECT COALESCE(MAX(id)+1, 1) FROM ${this.tableName}), FALSE)`,
     );
     await this.db.rawQuery(
       `ALTER TABLE ${this.tableName} ALTER COLUMN id SET DEFAULT nextval('parkings_id_seq')`,
-    );
-    await this.db.rawQuery(
-      `ALTER SEQUENCE parkings_id_seq OWNED BY ${this.tableName}.id`,
     );
   }
 
