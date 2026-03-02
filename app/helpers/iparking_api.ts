@@ -1,6 +1,6 @@
 import env from "#start/env";
 
-const BASE_URL = "https://microservice.portale.pwr.edu.pl/api/iparking/v1";
+const BASE_URL = "https://microservice.portale.pwr.edu.pl/api/iparking/v1/";
 const REQUEST_TIMEOUT_MS = 10000;
 
 async function fetchWithToken<T>(endpoint: string): Promise<T> {
@@ -12,7 +12,7 @@ async function fetchWithToken<T>(endpoint: string): Promise<T> {
   }, REQUEST_TIMEOUT_MS);
 
   try {
-    const url = new URL(endpoint, `${BASE_URL}/`);
+    const url = new URL(endpoint, BASE_URL);
     const response = await fetch(url, {
       headers: {
         Authorization: `Bearer ${token}`,

@@ -1,6 +1,7 @@
 import { DateTime } from "luxon";
 
 import { BaseSeeder } from "@adonisjs/lucid/seeders";
+import db from "@adonisjs/lucid/services/db";
 
 import Parking from "#models/parking";
 import ParkingAvailability from "#models/parking_availability";
@@ -82,9 +83,6 @@ export default class MockParkingsSeeder extends BaseSeeder {
   static environment = ["development"];
 
   async run() {
-    await ParkingAvailability.query().delete();
-    await Parking.query().delete();
-
     const now = DateTime.now();
 
     for (const mock of MOCK_PARKINGS) {
@@ -110,5 +108,9 @@ export default class MockParkingsSeeder extends BaseSeeder {
         measuredAt: now,
       });
     }
+
+    await db.rawQuery(
+      `SELECT setval('parkings_id_seq', (SELECT MAX(id) FROM parkings))`,
+    );
   }
 }

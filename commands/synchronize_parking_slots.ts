@@ -11,7 +11,6 @@ import {
   getCarParksFreeSlots,
 } from "../app/helpers/iparking_api.js";
 import {
-  getNextLocalId,
   parseTrend,
   upsertMetadataParking,
 } from "../app/helpers/parking_sync.js";
@@ -36,7 +35,7 @@ export default class SynchronizeParkingSlots extends BaseCommand {
     const knownByExternalId = new Map<number, Parking>(
       knownParkings
         .filter(
-          (parking): parking is typeof parking & { externalId: number } =>
+          (parking): parking is Parking & { externalId: number } =>
             parking.externalId !== null,
         )
         .map((parking) => [parking.externalId, parking]),
@@ -48,9 +47,9 @@ export default class SynchronizeParkingSlots extends BaseCommand {
 
     if (unknownExternalIds.length > 0) {
       this.logger.info(
-        `Unknown external parking IDs found: ${unknownExternalIds.join(", ")}. Running metadata sync for missing lots.`,
+        `Unknown external parking IDs found: ${unknownExternalIds.join(", ")}. Running metadata sync for all lots.`,
       );
-      await this.syncUnknownParkings(unknownExternalIds);
+      await this.syncUnknownParkings();
 
       const refreshedParkings = await Parking.query().whereIn(
         "external_id",
@@ -86,21 +85,10 @@ export default class SynchronizeParkingSlots extends BaseCommand {
     this.logger.info('"SynchronizeParkingSlots" finished');
   }
 
-  private async syncUnknownParkings(unknownExternalIds: number[]) {
+  private async syncUnknownParkings() {
     const carParks = await getCarParks();
-    const unknownCarParks = carParks.filter((park) =>
-      unknownExternalIds.includes(park.id),
-    );
-
-    if (unknownCarParks.length === 0) {
-      return;
-    }
-
-    let nextLocalId = await getNextLocalId();
-
-    for (const carPark of unknownCarParks) {
-      await upsertMetadataParking(carPark, nextLocalId);
-      nextLocalId += 1;
+    for (const carPark of carParks) {
+      await upsertMetadataParking(carPark);
     }
   }
 }

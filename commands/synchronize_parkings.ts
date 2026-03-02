@@ -8,7 +8,6 @@ import ParkingAvailability from "#models/parking_availability";
 
 import { getCarParks } from "../app/helpers/iparking_api.js";
 import {
-  getNextLocalId,
   parseTrend,
   upsertMetadataParking,
 } from "../app/helpers/parking_sync.js";
@@ -24,30 +23,18 @@ export default class SynchronizeParkings extends BaseCommand {
   async run() {
     const carParks = await getCarParks();
     const seenSymbols = new Set<string>();
-    let nextLocalId = await getNextLocalId();
 
     for (const carPark of carParks) {
       seenSymbols.add(carPark.symbol);
 
-      try {
-        const { parking, created } = await upsertMetadataParking(
-          carPark,
-          nextLocalId,
-        );
-        if (created) {
-          nextLocalId += 1;
-        }
+      const parking = await upsertMetadataParking(carPark);
 
-        await ParkingAvailability.create({
-          parkingId: parking.id,
-          spacesLeft: carPark.freeSlots,
-          trend: parseTrend(carPark.trend),
-          measuredAt: DateTime.now(),
-        });
-      } catch (error) {
-        console.error(error);
-        throw error;
-      }
+      await ParkingAvailability.create({
+        parkingId: parking.id,
+        spacesLeft: carPark.freeSlots,
+        trend: parseTrend(carPark.trend),
+        measuredAt: DateTime.now(),
+      });
     }
 
     // Hide any parking no longer present in the upstream API (e.g. split lots)

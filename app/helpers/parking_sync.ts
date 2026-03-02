@@ -11,15 +11,9 @@ export function parseTrend(trend: string): number {
   return trendMap[trend] ?? 0;
 }
 
-export async function getNextLocalId(): Promise<number> {
-  const lastParking = await Parking.query().orderBy("id", "desc").first();
-  return (lastParking?.id ?? 0) + 1;
-}
-
 export async function upsertMetadataParking(
   carPark: CarPark,
-  nextLocalId: number,
-): Promise<{ parking: Parking; created: boolean }> {
+): Promise<Parking> {
   let parking = await Parking.findBy("symbol", carPark.symbol);
 
   parking ??= await Parking.findBy("external_id", carPark.id);
@@ -41,11 +35,10 @@ export async function upsertMetadataParking(
         isVisible: true,
       })
       .save();
-    return { parking, created: false };
+    return parking;
   }
 
   parking = await Parking.create({
-    id: nextLocalId,
     symbol: carPark.symbol,
     externalId: carPark.id,
     name: carPark.name,
@@ -59,5 +52,5 @@ export async function upsertMetadataParking(
     isActive: true,
     isVisible: true,
   });
-  return { parking, created: true };
+  return parking;
 }
