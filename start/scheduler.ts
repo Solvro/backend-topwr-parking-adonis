@@ -10,12 +10,14 @@ logger.info(`Parking synchronization interval: ${parkingInterval}`);
 
 switch (parkingInterval) {
   case "EVERY_MINUTE":
-    scheduler.command("synchronize:parkings").everyMinute();
+    scheduler.command("synchronize:parking-slots").everyMinute();
     break;
   case "EVERY_5":
-    scheduler.command("synchronize:parkings").everyFiveMinutes();
+    scheduler.command("synchronize:parking-slots").everyFiveMinutes();
     break;
   case "EVERY_15":
-    scheduler.command("synchronize:parkings").everyFifteenMinutes();
+    scheduler.command("synchronize:parking-slots").everyFifteenMinutes();
     break;
 }
+
+scheduler.command("synchronize:parkings").daily();

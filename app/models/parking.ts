@@ -15,6 +15,9 @@ export default class Parking extends BaseModel {
   declare symbol: string;
 
   @column()
+  declare externalId: number | null;
+
+  @column()
   declare type: string | null;
 
   @column()

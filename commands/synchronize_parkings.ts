@@ -6,10 +6,7 @@ import type { CommandOptions } from "@adonisjs/core/types/ace";
 import Parking from "#models/parking";
 import ParkingAvailability from "#models/parking_availability";
 
-import {
-  getCarParks,
-  getCarParksFreeSlots,
-} from "../app/helpers/iparking_api.js";
+import { getCarParks } from "../app/helpers/iparking_api.js";
 
 const trendMap: Record<string, number> = {
   constant: 0,
@@ -30,28 +27,26 @@ export default class SynchronizeParkings extends BaseCommand {
   };
 
   async run() {
-    const [carParks, freeSlots] = await Promise.all([
-      getCarParks(),
-      getCarParksFreeSlots(),
-    ]);
-
-    const freeSlotsMap = new Map(freeSlots.map((slot) => [slot.id, slot]));
+    const carParks = await getCarParks();
     const seenSymbols = new Set<string>();
+    let nextLocalId = await this.getNextLocalId();
 
     for (const carPark of carParks) {
-      if (process.env.DEBUG) {
+      if (process.env.DEBUG !== undefined) {
         this.logger.debug(JSON.stringify(carPark, null, 2));
       }
 
       seenSymbols.add(carPark.symbol);
-      const freeSlot = freeSlotsMap.get(carPark.id);
-
       let parking = await Parking.findBy("symbol", carPark.symbol);
 
+      parking ??= await Parking.findBy("external_id", carPark.id);
+
       try {
-        if (parking) {
+        if (parking !== null) {
           await parking
             .merge({
+              symbol: carPark.symbol,
+              externalId: carPark.id,
               name: carPark.name,
               access: carPark.access,
               closeHour: carPark.closeHour,
@@ -60,13 +55,15 @@ export default class SynchronizeParkings extends BaseCommand {
               geoLan: Number(carPark.geoLan),
               geoLat: Number(carPark.geoLat),
               address: carPark.address,
+              isActive: true,
               isVisible: true,
             })
             .save();
         } else {
           parking = await Parking.create({
-            id: carPark.id,
+            id: nextLocalId,
             symbol: carPark.symbol,
+            externalId: carPark.id,
             name: carPark.name,
             access: carPark.access,
             closeHour: carPark.closeHour,
@@ -78,17 +75,17 @@ export default class SynchronizeParkings extends BaseCommand {
             isActive: true,
             isVisible: true,
           });
+          nextLocalId += 1;
         }
       } catch (error) {
         console.error(error);
         throw error;
       }
 
-      const rawTrend = freeSlot?.trend ?? carPark.trend;
       await ParkingAvailability.create({
         parkingId: parking.id,
-        spacesLeft: freeSlot?.freeSlots ?? carPark.freeSlots,
-        trend: parseTrend(rawTrend),
+        spacesLeft: carPark.freeSlots,
+        trend: parseTrend(carPark.trend),
         measuredAt: DateTime.now(),
       });
     }
@@ -99,5 +96,10 @@ export default class SynchronizeParkings extends BaseCommand {
       .update({ is_visible: false });
 
     this.logger.info('"SynchronizeParkings" finished');
+  }
+
+  private async getNextLocalId(): Promise<number> {
+    const lastParking = await Parking.query().orderBy("id", "desc").first();
+    return (lastParking?.id ?? 0) + 1;
   }
 }
