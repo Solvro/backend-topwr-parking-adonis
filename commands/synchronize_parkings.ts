@@ -32,10 +32,6 @@ export default class SynchronizeParkings extends BaseCommand {
     let nextLocalId = await this.getNextLocalId();
 
     for (const carPark of carParks) {
-      if (process.env.DEBUG !== undefined) {
-        this.logger.debug(JSON.stringify(carPark, null, 2));
-      }
-
       seenSymbols.add(carPark.symbol);
       let parking = await Parking.findBy("symbol", carPark.symbol);
 
