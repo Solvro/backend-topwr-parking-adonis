@@ -54,6 +54,14 @@ export default class ParkingsController {
     };
   }
 
+  async extraInfo() {
+    return {
+      info: `Parkingi zlokalizowane przy ul. Hoene-Wrońskiego oraz w Pasażu Studenckim są ogólnodostępne dla pracowników, doktorantów i studentów PWr od poniedziałku do piątku w godzinach 17:00-22:30, a także przez cały weekend.
+
+W weekendy do dyspozycji pracowników, doktorantów i studentów PWr pozostaje również parking w budynku C-18 (Strefa Kultury Studenckiej).`,
+    };
+  }
+
   /**
    * Show individual resource
    */
