@@ -1,7 +1,7 @@
 import { DateTime } from "luxon";
 
 import { Exception } from "@adonisjs/core/exceptions";
-import { HttpContext } from "@adonisjs/core/http";
+import type { HttpContext } from "@adonisjs/core/http";
 
 import Parking from "#models/parking";
 import ParkingAvailability from "#models/parking_availability";
