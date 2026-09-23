@@ -2,7 +2,6 @@ import router from "@adonisjs/core/services/router";
 
 const ParkingsController = () => import("#controllers/parkings_controller");
 
-
 router.get("/", async () => {
   return { elo: "żelo" };
 });

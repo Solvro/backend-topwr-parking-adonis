@@ -6,14 +6,8 @@ import type { CommandOptions } from "@adonisjs/core/types/ace";
 import Parking from "#models/parking";
 import ParkingAvailability from "#models/parking_availability";
 
-import {
-  getCarParks,
-  getCarParksFreeSlots,
-} from "../app/helpers/iparking_api.js";
-import {
-  parseTrend,
-  upsertMetadataParking,
-} from "../app/helpers/parking_sync.js";
+import { getCarParksFreeSlots } from "../app/helpers/iparking_api.js";
+import type { CarParkFreeSlot } from "../app/helpers/iparking_api.js";
 
 export default class SynchronizeParkingSlots extends BaseCommand {
   static commandName = "synchronize:parking-slots";
@@ -22,11 +16,29 @@ export default class SynchronizeParkingSlots extends BaseCommand {
   static options: CommandOptions = {
     startApp: true,
   };
+  private readonly trendMap: Record<string, number> = {
+    constant: 0,
+    up: 1,
+    down: -1,
+  };
+  private parseTrend(trend: string): number {
+    return this.trendMap[trend] ?? 0;
+  }
 
   async run() {
-    const freeSlots = await getCarParksFreeSlots();
+    let freeSlots = await getCarParksFreeSlots();
+    freeSlots = freeSlots.filter(
+      /* TEMPORAL FIX!!!!!!!!
+      We skip the this parnikng od external_id = 3 beacause it's not actual but external api 
+      parkinging provider currently shares it as avctive. Results in errors after 
+      parking "Strefa Kultury Studenckiej" was changed to "Parking Wrońskiego"
+      */
+      function skipSKSByExternalid(value: CarParkFreeSlot) {
+        return value.id !== 3;
+      },
+    );
+    const requestedExternalIds = freeSlots.map((slot) => slot.id);
 
-    const requestedExternalIds = [...new Set(freeSlots.map((slot) => slot.id))];
     const knownParkings = await Parking.query().whereIn(
       "external_id",
       requestedExternalIds,
@@ -46,8 +58,8 @@ export default class SynchronizeParkingSlots extends BaseCommand {
     );
 
     if (unknownExternalIds.length > 0) {
-      this.logger.info(
-        `Unknown external parking IDs found: ${unknownExternalIds.join(", ")}. Running metadata sync for all lots.`,
+      this.logger.warning(
+        `Unknown external parking IDs found: ${unknownExternalIds.join(", ")}. Running sync for all CarParks.`,
       );
       await this.syncUnknownParkings();
 
@@ -68,7 +80,7 @@ export default class SynchronizeParkingSlots extends BaseCommand {
     for (const slot of freeSlots) {
       const parking = knownByExternalId.get(slot.id);
       if (parking === undefined) {
-        this.logger.info(
+        this.logger.warning(
           `Skipping slot update for unknown external ID ${slot.id}`,
         );
         continue;
@@ -77,7 +89,7 @@ export default class SynchronizeParkingSlots extends BaseCommand {
       await ParkingAvailability.create({
         parkingId: parking.id,
         spacesLeft: slot.freeSlots,
-        trend: parseTrend(slot.trend),
+        trend: this.parseTrend(slot.trend),
         measuredAt,
       });
     }
@@ -86,9 +98,6 @@ export default class SynchronizeParkingSlots extends BaseCommand {
   }
 
   private async syncUnknownParkings() {
-    const carParks = await getCarParks();
-    for (const carPark of carParks) {
-      await upsertMetadataParking(carPark);
-    }
+    await this.kernel.exec("synchronize:parkings", []);
   }
 }
