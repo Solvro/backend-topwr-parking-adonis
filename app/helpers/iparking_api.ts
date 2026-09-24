@@ -3,6 +3,43 @@ import env from "#start/env";
 const BASE_URL = "https://microservice.portale.pwr.edu.pl/api/iparking/v1/";
 const REQUEST_TIMEOUT_MS = 10000;
 
+/**
+ * Represents CarPark model respsone form iparking API
+ *
+ */
+
+export interface CarPark {
+  id: number;
+  symbol: string;
+  name: string;
+  address: string;
+  access: string | null;
+  openHour: string | null;
+  closeHour: string | null;
+  geoLan: number;
+  geoLat: number;
+  totalSlots: number;
+  freeSlots: number;
+  trend: string;
+}
+
+interface CarParksResponse {
+  carParks: CarPark[];
+}
+/**
+ * Represents CarParkFreeSlot respsone form iparking API
+ *
+ */
+export interface CarParkFreeSlot {
+  id: number;
+  freeSlots: number;
+  trend: string;
+}
+
+interface CarParksFreeSlotResponse {
+  carParksFreeSlots: CarParkFreeSlot[];
+}
+
 async function fetchWithToken<T>(endpoint: string): Promise<T> {
   const token = env.get("API_ACCESS_TOKEN");
 
@@ -38,35 +75,6 @@ async function fetchWithToken<T>(endpoint: string): Promise<T> {
   } finally {
     clearTimeout(timeoutId);
   }
-}
-
-export interface CarPark {
-  id: number;
-  symbol: string;
-  name: string;
-  address: string;
-  access: string | null;
-  openHour: string | null;
-  closeHour: string | null;
-  geoLan: string;
-  geoLat: string;
-  totalSlots: number;
-  freeSlots: number;
-  trend: string;
-}
-
-export interface CarParkFreeSlot {
-  id: number;
-  freeSlots: number;
-  trend: string;
-}
-
-interface CarParksResponse {
-  carParks: CarPark[];
-}
-
-interface CarParksFreeSlotResponse {
-  carParksFreeSlots: CarParkFreeSlot[];
 }
 
 export async function getCarParks(): Promise<CarPark[]> {
