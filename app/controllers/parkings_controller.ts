@@ -1,14 +1,18 @@
 import { DateTime } from "luxon";
 
-import { Exception } from "@adonisjs/core/exceptions";
 import type { HttpContext } from "@adonisjs/core/http";
 
 import Parking from "#models/parking";
 import ParkingAvailability from "#models/parking_availability";
 import env from "#start/env";
+import { showParkingValidator } from "#validators/parking_id";
 
 const APP_URL = env.get("APP_URL");
-
+/**
+ * Date since new parking instances are in development and shouldn't be currently displayed in the API response
+ * Date is set to 01/09/2026 00:00:00, so any parking created after this date will be filtered out from the response
+ */
+const PARKING_IN_DEVELOPMENT_DATE = DateTime.local(2026, 9, 1);
 export default class ParkingsController {
   /**
    * Display a list of resource
@@ -16,6 +20,7 @@ export default class ParkingsController {
   async index() {
     const parkingLots = await Parking.query()
       .where("is_visible", true)
+      .where("createdAt", "<", PARKING_IN_DEVELOPMENT_DATE.toString())
       .preload("availabilities", (query) =>
         query.orderBy("measured_at", "desc").groupLimit(1),
       )
@@ -66,13 +71,11 @@ W weekendy do dyspozycji pracowników, doktorantów i studentów PWr pozostaje r
    * Show individual resource
    */
   async show({ request }: HttpContext) {
-    const id = Number(request.param("id"));
-    if (Number.isNaN(id) || id % 1 !== 0) {
-      throw new Exception("kurwa int miał być", {
-        status: 400,
-        code: "E_DEBIL",
-      });
-    }
+    const payload = await request.validateUsing(showParkingValidator, {
+      data: request.params(),
+      meta: { table: "parkings", column: "id" },
+    });
+
     const plNow = DateTime.now().setZone("Europe/Warsaw");
     const startOfDay = plNow
       .set({
@@ -92,7 +95,7 @@ W weekendy do dyspozycji pracowników, doktorantów i studentów PWr pozostaje r
       .toJSDate();
 
     const availabilities = await ParkingAvailability.query()
-      .where("parking_id", id)
+      .where("parking_id", payload.id)
       .whereBetween("measured_at", [startOfDay, endOfDay])
       .orderBy("measured_at", "asc");
 
