@@ -3,15 +3,14 @@ FROM node:24-alpine AS base
 
 WORKDIR /app
 RUN apk add --no-cache curl wget
+COPY --parents package.json package-lock.json patches/ ./
 
 # All deps stage
 FROM base AS deps
-ADD package.json package-lock.json ./
 RUN npm ci
 
 # Production only deps stage
 FROM base AS production-deps
-ADD package.json package-lock.json ./
 RUN npm ci --omit=dev
 
 # Production stage
