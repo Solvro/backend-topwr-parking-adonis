@@ -2,7 +2,8 @@
 FROM node:26-alpine AS base
 
 WORKDIR /app
-RUN apk add --no-cache curl wget
+RUN apk add --no-cache curl wget \
+ && npm i -g npm
 COPY --parents package.json package-lock.json patches/ ./
 
 # All deps stage
