@@ -1,5 +1,5 @@
 # this files includes some shit we've changed with czaja
-FROM node:24-alpine AS base
+FROM node:26-alpine AS base
 
 WORKDIR /app
 RUN apk add --no-cache curl wget
