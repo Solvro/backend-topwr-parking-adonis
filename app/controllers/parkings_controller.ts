@@ -18,23 +18,31 @@ export default class ParkingsController {
    * Display a list of resource
    */
   async index() {
+    // LATERAL + LIMIT 1 lets Postgres fetch only the latest measurement per parking
+    // via parking_availabilities_latest_idx instead of scanning the whole history
     const parkingLots = await Parking.query()
-      .where("is_visible", true)
-      .where("createdAt", "<", PARKING_IN_DEVELOPMENT_DATE.toString())
-      .preload("availabilities", (query) =>
-        query.orderBy("measured_at", "desc").groupLimit(1),
+      .select("parkings.*")
+      .select("latest.spaces_left as latest_spaces_left")
+      .select("latest.trend as latest_trend")
+      .joinRaw(
+        `LEFT JOIN LATERAL (
+          SELECT spaces_left, trend
+          FROM parking_availabilities
+          WHERE parking_id = parkings.id
+          ORDER BY measured_at DESC, id DESC
+          LIMIT 1
+        ) AS latest ON true`,
       )
-      .orderBy("id", "asc");
+      .where("parkings.is_visible", true)
+      .where("parkings.created_at", "<", PARKING_IN_DEVELOPMENT_DATE.toString())
+      .orderBy("parkings.id", "asc");
     return {
       success: 0,
       places: parkingLots.map((lot) => {
         return {
           id: lot.id.toString(),
           parking_id: lot.id.toString(),
-          liczba_miejsc:
-            lot.availabilities.length > 0
-              ? lot.availabilities[0].spacesLeft.toString()
-              : "0",
+          liczba_miejsc: String(lot.$extras.latest_spaces_left ?? 0),
           symbol: lot.symbol,
           type: lot.type,
           access: lot.access,
@@ -50,10 +58,7 @@ export default class ParkingsController {
           show_park: lot.isVisible ? "1" : "0",
           lp: "",
           address: lot.address,
-          trend:
-            lot.availabilities.length > 0
-              ? lot.availabilities[0].trend.toString()
-              : "?",
+          trend: String(lot.$extras.latest_trend ?? "?"),
         };
       }),
     };
