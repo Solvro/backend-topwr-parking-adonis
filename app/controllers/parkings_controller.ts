@@ -8,11 +8,7 @@ import env from "#start/env";
 import { showParkingValidator } from "#validators/parking_id";
 
 const APP_URL = env.get("APP_URL");
-/**
- * Date since new parking instances are in development and shouldn't be currently displayed in the API response
- * Date is set to 01/09/2026 00:00:00, so any parking created after this date will be filtered out from the response
- */
-const PARKING_IN_DEVELOPMENT_DATE = DateTime.local(2026, 9, 1);
+
 export default class ParkingsController {
   /**
    * Display a list of resource
@@ -34,7 +30,6 @@ export default class ParkingsController {
         ) AS latest ON true`,
       )
       .where("parkings.is_visible", true)
-      .where("parkings.created_at", "<", PARKING_IN_DEVELOPMENT_DATE.toString())
       .orderBy("parkings.id", "asc");
     return {
       success: 0,
