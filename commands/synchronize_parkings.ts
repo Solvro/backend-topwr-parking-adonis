@@ -87,6 +87,6 @@ export default class SynchronizeParkings extends BaseCommand {
       .whereNotIn("symbol", [...seenParkingSymbols])
       .update({ is_visible: false });
 
-    this.logger.info('"SynchronizeParkings" finished');
+    this.logger.info('"synchronize:parkings" finished');
   }
 }
