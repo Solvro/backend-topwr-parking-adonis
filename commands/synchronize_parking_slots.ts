@@ -11,7 +11,8 @@ import type { CarParkFreeSlot } from "../app/helpers/iparking_api.js";
 
 export default class SynchronizeParkingSlots extends BaseCommand {
   static commandName = "synchronize:parkings-slots";
-  static description = "Synchronize free slots from iParking";
+  static description =
+    "Synchronize free slots from iParking. Exits with code 2 if a returned external ID with non-null free slots has no matching parking in the database (run synchronize:parkings first). Fails if an API request or database operation fails.";
 
   static options: CommandOptions = {
     startApp: true,
@@ -25,14 +26,36 @@ export default class SynchronizeParkingSlots extends BaseCommand {
     return this.trendMap[trend] ?? 0;
   }
 
+  /**
+   * Saves availability for parkings returned by iParking, skipping null free slots.
+   *
+   * @throws {Error} If a database query or availability insert fails.
+   *
+   * @remarks
+   * Sets exit code 1 if the API request fails (including a timeout) or the
+   * response cannot be parsed. No availability records are saved.
+   * Sets exit code 2 if any remaining external ID has no matching parking in the
+   * database. No availability records are saved; run synchronize:parkings first.
+   */
   async run() {
-    let freeSlots = await getCarParksFreeSlots();
+    let freeSlots: CarParkFreeSlot[];
+
+    try {
+      freeSlots = await getCarParksFreeSlots();
+    } catch (error) {
+      this.logger.error(
+        `Failed to fetch parking slots from iParking: ${error}`,
+      );
+      this.exitCode = 1;
+      return;
+    }
     freeSlots = freeSlots.filter(
       // Skip entries with null freeSlots, which may indicate an iParking's inside error.
       function skipNullSlots(value: CarParkFreeSlot) {
         return value.freeSlots !== null;
       },
     );
+    // External id's from API responmser
     const requestedExternalIds = freeSlots.map((slot) => slot.id);
 
     const knownParkings = await Parking.query().whereIn(
@@ -40,7 +63,7 @@ export default class SynchronizeParkingSlots extends BaseCommand {
       requestedExternalIds,
     );
 
-    const knownByExternalId = new Map<number, Parking>(
+    const knowParkingsByExternalId = new Map<number, Parking>(
       knownParkings
         .filter(
           (parking): parking is Parking & { externalId: number } =>
@@ -50,31 +73,23 @@ export default class SynchronizeParkingSlots extends BaseCommand {
     );
 
     const unknownExternalIds = requestedExternalIds.filter(
-      (externalId) => !knownByExternalId.has(externalId),
+      (externalId) => !knowParkingsByExternalId.has(externalId),
     );
 
     if (unknownExternalIds.length > 0) {
-      this.logger.warning(
-        `Unknown external parking IDs found: ${unknownExternalIds.join(", ")}. Running sync for all CarParks.`,
+      this.logger.error(
+        `Missing parkings for external IDs: ${unknownExternalIds.join(", ")}. ` +
+          'Run "node ace synchronize:parkings" first.',
       );
-      await this.syncUnknownParkings();
 
-      const refreshedParkings = await Parking.query().whereIn(
-        "external_id",
-        requestedExternalIds,
-      );
-      knownByExternalId.clear();
-      for (const parking of refreshedParkings) {
-        if (parking.externalId !== null) {
-          knownByExternalId.set(parking.externalId, parking);
-        }
-      }
+      this.exitCode = 2;
+      return;
     }
 
     const measuredAt = DateTime.now();
 
     for (const slot of freeSlots) {
-      const parking = knownByExternalId.get(slot.id);
+      const parking = knowParkingsByExternalId.get(slot.id);
       if (parking === undefined) {
         this.logger.warning(
           `Skipping slot update for unknown external ID ${slot.id}`,
@@ -90,10 +105,6 @@ export default class SynchronizeParkingSlots extends BaseCommand {
       });
     }
 
-    this.logger.info('"SynchronizeParkingSlots" finished');
-  }
-
-  private async syncUnknownParkings() {
-    await this.kernel.exec("synchronize:parkings", []);
+    this.logger.info('"synchronize:parking-slots" finished');
   }
 }
