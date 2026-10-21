@@ -13,6 +13,10 @@ const APP_URL = env.get("APP_URL");
  * Date is set to 01/09/2026 00:00:00, so any parking created after this date will be filtered out from the response
  */
 const PARKING_IN_DEVELOPMENT_DATE = DateTime.local(2026, 9, 1);
+/**
+ * Override of the faulty DI API coordinates for Polinka (C13)
+ */
+const POLINKA_COORDINATES_OVERRIDE = { lat: "51.107502", lan: "17.058340" };
 export default class ParkingsController {
   /**
    * Display a list of resource
@@ -50,8 +54,14 @@ export default class ParkingsController {
           open_hour: lot.openHour,
           close_hour: lot.closeHour,
           places: lot.places.toString(),
-          geo_lan: lot.geoLan.toString(),
-          geo_lat: lot.geoLat.toString(),
+          geo_lan:
+            lot.symbol === "C13"
+              ? POLINKA_COORDINATES_OVERRIDE.lan
+              : lot.geoLan.toString(),
+          geo_lat:
+            lot.symbol === "C13"
+              ? POLINKA_COORDINATES_OVERRIDE.lat
+              : lot.geoLat.toString(),
           photo: `${APP_URL}/images/parkings/original/${lot.symbol}.jpg`,
           miniature: `${APP_URL}/images/parkings/miniatures/${lot.symbol}.jpg`,
           aktywny: lot.isActive ? "1" : "0",
