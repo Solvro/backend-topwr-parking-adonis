@@ -12,7 +12,7 @@ import type { CarParkFreeSlot } from "../app/helpers/iparking_api.js";
 export default class SynchronizeParkingSlots extends BaseCommand {
   static commandName = "synchronize:parkings-slots";
   static description =
-    "Synchronize free slots from iParking. Exits with code 2 if a returned external ID with non-null free slots has no matching parking in the database (run synchronize:parkings first). Fails if an API request or database operation fails.";
+    "Record parking availability from iParking, skipping entries with null free-slot counts. Exit with code 2 without saving records if any parking is missing; run synchronize:parkings first.";
 
   static options: CommandOptions = {
     startApp: true,
@@ -27,7 +27,8 @@ export default class SynchronizeParkingSlots extends BaseCommand {
   }
 
   /**
-   * Saves availability for parkings returned by iParking, skipping null free slots.
+   * Saves availability records for car parks returned by iParking.
+   * Skips entries whose free-slot count is null.
    *
    * @throws {Error} If a database query or availability insert fails.
    *
@@ -38,6 +39,7 @@ export default class SynchronizeParkingSlots extends BaseCommand {
    * database. No availability records are saved; run synchronize:parkings first.
    */
   async run() {
+    this.logger.info(`Start "${this.commandName}" command`);
     let freeSlots: CarParkFreeSlot[];
 
     try {
@@ -55,7 +57,7 @@ export default class SynchronizeParkingSlots extends BaseCommand {
         return value.freeSlots !== null;
       },
     );
-    // External id's from API responmser
+    // Collect external IDs from entries with known availability.
     const requestedExternalIds = freeSlots.map((slot) => slot.id);
 
     const knownParkings = await Parking.query().whereIn(
@@ -63,7 +65,7 @@ export default class SynchronizeParkingSlots extends BaseCommand {
       requestedExternalIds,
     );
 
-    const knowParkingsByExternalId = new Map<number, Parking>(
+    const knownParkingsByExternalId = new Map<number, Parking>(
       knownParkings
         .filter(
           (parking): parking is Parking & { externalId: number } =>
@@ -73,7 +75,7 @@ export default class SynchronizeParkingSlots extends BaseCommand {
     );
 
     const unknownExternalIds = requestedExternalIds.filter(
-      (externalId) => !knowParkingsByExternalId.has(externalId),
+      (externalId) => !knownParkingsByExternalId.has(externalId),
     );
 
     if (unknownExternalIds.length > 0) {
@@ -89,7 +91,7 @@ export default class SynchronizeParkingSlots extends BaseCommand {
     const measuredAt = DateTime.now();
 
     for (const slot of freeSlots) {
-      const parking = knowParkingsByExternalId.get(slot.id);
+      const parking = knownParkingsByExternalId.get(slot.id);
       if (parking === undefined) {
         this.logger.warning(
           `Skipping slot update for unknown external ID ${slot.id}`,
@@ -105,6 +107,6 @@ export default class SynchronizeParkingSlots extends BaseCommand {
       });
     }
 
-    this.logger.info('"synchronize:parking-slots" finished');
+    this.logger.info(`"${this.commandName}" completed`);
   }
 }
