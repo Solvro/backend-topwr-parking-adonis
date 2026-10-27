@@ -12,7 +12,7 @@ import { getCarParks } from "../app/helpers/iparking_api.js";
 export default class SynchronizeParkings extends BaseCommand {
   static commandName = "synchronize:parkings";
   static description =
-    "Synchronize car park details without updating their's fress slots";
+    "Synchronize car park details without updating their free slots.";
 
   static options: CommandOptions = {
     startApp: true,
@@ -65,6 +65,7 @@ export default class SynchronizeParkings extends BaseCommand {
   }
 
   async run() {
+    this.logger.info(`Start "${this.commandName}" command`);
     const carParks = await getCarParks();
     const seenParkingSymbols = new Set<string>();
 
@@ -87,6 +88,6 @@ export default class SynchronizeParkings extends BaseCommand {
       .whereNotIn("symbol", [...seenParkingSymbols])
       .update({ is_visible: false });
 
-    this.logger.info('"SynchronizeParkings" finished');
+    this.logger.info(`"${this.commandName}" completed`);
   }
 }
