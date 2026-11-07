@@ -41,7 +41,7 @@ interface CarParksFreeSlotResponse {
 }
 
 async function fetchWithToken<T>(endpoint: string): Promise<T> {
-  const token = env.get("API_ACCESS_TOKEN");
+  const token = env.get("PARKING_API_ACCESS_TOKEN");
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => {
