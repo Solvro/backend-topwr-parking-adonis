@@ -32,7 +32,8 @@
     "prepare": "husky || true",
     "start": "node bin/server.js",
     "test": "node ace test",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "types:check": "tsc --noEmit"
   },
   "lint-staged": {
     "*": "prettier -w --ignore-unknown"

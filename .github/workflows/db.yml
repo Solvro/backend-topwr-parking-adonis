@@ -5,7 +5,6 @@ on:
     branches: ["*"]
   push:
     branches: ["main"]
-  merge_group:
 
 jobs:
   migration-check:
@@ -31,8 +30,16 @@ jobs:
           - 5432:5432
 
     steps:
-      - name: Check out repository code
-        uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: "npm"
 
       - name: Install dependencies
         run: npm ci
