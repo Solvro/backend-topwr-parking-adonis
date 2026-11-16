@@ -1,3 +1,8 @@
+import { toIBaseError } from "@solvro/error-handling/base";
+import {
+  analyzeErrorStack,
+  prepareReportForLogging,
+} from "@solvro/error-handling/reporting";
 import { nullableMap } from "@solvro/utils/option";
 import { DateTime } from "luxon";
 
@@ -76,8 +81,9 @@ export default class SynchronizeParkings extends BaseCommand {
           this.mapToParkingModel(carPark),
         );
       } catch (error) {
+        const report = analyzeErrorStack(toIBaseError(error));
         this.logger.warning(
-          `Failed to synchronize parking "${carPark.symbol}" (external ID: ${carPark.id}): ${error instanceof Error ? error.message : String(error)}`,
+          `Failed to synchronize parking "${carPark.symbol}" (external ID: ${carPark.id}): ${prepareReportForLogging(report)}`,
         );
         this.exitCode = 1;
       }

@@ -1,3 +1,8 @@
+import { toIBaseError } from "@solvro/error-handling/base";
+import {
+  analyzeErrorStack,
+  prepareReportForLogging,
+} from "@solvro/error-handling/reporting";
 import { DateTime } from "luxon";
 
 import { BaseCommand } from "@adonisjs/core/ace";
@@ -45,10 +50,12 @@ export default class SynchronizeParkingSlots extends BaseCommand {
     try {
       freeSlots = await getCarParksFreeSlots();
     } catch (error) {
+      const report = analyzeErrorStack(toIBaseError(error));
       this.logger.error(
-        `Failed to fetch parking slots from iParking: ${error}`,
+        `Failed to fetch parking slots from iParking: ${prepareReportForLogging(report)}`,
       );
       this.exitCode = 1;
+      this.error = error as unknown;
       return;
     }
     freeSlots = freeSlots.filter(
@@ -79,12 +86,12 @@ export default class SynchronizeParkingSlots extends BaseCommand {
     );
 
     if (unknownExternalIds.length > 0) {
-      this.logger.error(
+      const error =
         `Missing parkings for external IDs: ${unknownExternalIds.join(", ")}. ` +
-          'Run "node ace synchronize:parkings" first.',
-      );
-
+        'Run "node ace synchronize:parkings" first.';
+      this.logger.error(error);
       this.exitCode = 2;
+      this.error = error;
       return;
     }
 
