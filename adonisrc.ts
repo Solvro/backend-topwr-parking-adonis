@@ -76,7 +76,7 @@ export default defineConfig({
         timeout: 2000,
       },
       {
-        files: ["tests/functional/**/*.spec(.ts|.js)"],
+        files: ["tests/unit/**/*.spec.{ts,js}"],
         name: "functional",
         timeout: 30000,
       },
