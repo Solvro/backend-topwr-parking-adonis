@@ -1,3 +1,9 @@
+import { toIBaseError } from "@solvro/error-handling/base";
+import {
+  analyzeErrorStack,
+  prepareReportForLogging,
+} from "@solvro/error-handling/reporting";
+
 import env from "#start/env";
 
 const BASE_URL = "https://microservice.portale.pwr.edu.pl/api/iparking/v1/";
@@ -41,7 +47,7 @@ interface CarParksFreeSlotResponse {
 }
 
 async function fetchWithToken<T>(endpoint: string): Promise<T> {
-  const token = env.get("PARKING_API_ACCESS_TOKEN");
+  const token = env.get("PARKING_API_ACCESS_TOKEN") as unknown as string;
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => {
@@ -68,7 +74,8 @@ async function fetchWithToken<T>(endpoint: string): Promise<T> {
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
       throw new Error(
-        `iPark API request to "${endpoint}" timed out after ${REQUEST_TIMEOUT_MS}ms`,
+        `iPark API request to "${endpoint}" timed out after ${REQUEST_TIMEOUT_MS}ms: ${prepareReportForLogging(analyzeErrorStack(toIBaseError(error)))}`,
+        { cause: error },
       );
     }
     throw error;
