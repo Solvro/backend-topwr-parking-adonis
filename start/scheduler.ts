@@ -12,3 +12,5 @@ switch (parkingInterval) {
   case "EVERY_MINUTE":
     scheduler.command("synchronize:parkings-with-slots", ["-w"]).everyMinute();
 }
+
+scheduler.command("synchronize:parkings").everyFiveMinutes();
